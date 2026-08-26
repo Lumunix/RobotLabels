@@ -1,5 +1,0 @@
-Pillow>=10.0.0
-ppf-datamatrix>=0.2
-
-# Optional: decode verification (requires libdmtx system library)
-# pylibdmtx>=0.1.10

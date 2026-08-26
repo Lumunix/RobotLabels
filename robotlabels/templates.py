@@ -44,24 +44,13 @@ class Rect:
 
 
 @dataclass(frozen=True)
-class TickMark:
-    """Short registration tick centered on an outer edge."""
-
-    orientation: str  # top, bottom, left, right
-    center: int
-    start: int
-    end: int
-    thickness: int = 2
-
-
-@dataclass(frozen=True)
 class LabelTemplate:
     kind: LabelKind
     preview_px: int
     outer: Rect
     inner: Rect | None
     datamatrix: Rect
-    ticks: tuple[TickMark, ...]
+    ticks: tuple[Rect, ...]  # filled registration marks, in preview coordinates
     text_height_px: int
     text_band_px: Rect | None  # region between outer and inner for edge text (ant)
     bottom_text_y: int | None  # baseline region center for tote bottom text
@@ -75,19 +64,23 @@ class LabelTemplate:
         return self.dots(dpi, size_mm) / self.preview_px
 
 
+# Ticks are short dashes perpendicular to the outer border, crossing it at the
+# midpoint of each edge (measured from the reference label photo).
+_EDGE_TICKS = (
+    Rect(308, 0, 312, 28),      # top
+    Rect(308, 592, 312, 620),   # bottom
+    Rect(0, 308, 28, 312),      # left
+    Rect(592, 308, 620, 312),   # right
+)
+
 ANT_TEMPLATE = LabelTemplate(
     kind=LabelKind.ANT,
     preview_px=PREVIEW_PX,
     outer=Rect(20, 20, 599, 599),
     inner=Rect(77, 77, 542, 542),
-    datamatrix=Rect(171, 171, 449, 449),
-    ticks=(
-        TickMark("top", 310, 289, 324, 2),
-        TickMark("bottom", 310, 289, 324, 2),
-        TickMark("left", 310, 289, 324, 2),
-        TickMark("right", 310, 289, 324, 2),
-    ),
-    text_height_px=22,
+    datamatrix=Rect(203, 203, 417, 417),
+    ticks=_EDGE_TICKS,
+    text_height_px=44,
     text_band_px=Rect(20, 20, 599, 599),
     bottom_text_y=None,
     corner_radius_px=8,
@@ -100,16 +93,11 @@ TOTE_TEMPLATE = LabelTemplate(
     outer=Rect(20, 20, 599, 599),
     inner=None,
     datamatrix=Rect(161, 161, 459, 459),
-    ticks=(
-        TickMark("top", 310, 289, 324, 2),
-        TickMark("bottom", 310, 289, 324, 2),
-        TickMark("left", 310, 289, 324, 2),
-        TickMark("right", 310, 289, 324, 2),
-    ),
-    text_height_px=22,
+    ticks=_EDGE_TICKS,
+    text_height_px=44,
     text_band_px=None,
     bottom_text_y=512,
-    corner_radius_px=12,
+    corner_radius_px=8,
     line_width_px=2,
 )
 

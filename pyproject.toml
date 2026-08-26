@@ -1,15 +1,11 @@
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "robotlabels"
 version = "0.1.0"
 description = "Generate robot floor and tote labels from CSV without BarTender"
-readme = "README.md"
-requires-python = ">=3.10"
-license = { text = "MIT" }
 authors = [{ name = "Lumunix" }]
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
 dependencies = [
     "Pillow>=10.0.0",
     "ppf-datamatrix>=0.2",
@@ -21,6 +17,9 @@ verify = ["pylibdmtx>=0.1.10"]
 [project.scripts]
 robotlabels = "robotlabels.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["robotlabels*"]
+[tool.poetry]
+packages = [{ include = "robotlabels" }]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

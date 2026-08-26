@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from robotlabels.datamatrix import encode_matrix
 from robotlabels.templates import (
     DEFAULT_DPI,
     DEFAULT_SIZE_MM,
     LabelKind,
+    LabelTemplate,
     format_tote_code,
     get_template,
 )
@@ -21,28 +23,19 @@ def _box_zpl(x: int, y: int, w: int, h: int, thickness: int) -> str:
     return f"^FO{x},{y}^GB{w},{h},{thickness},B^FS"
 
 
-def _tick_zpl(size: int, factor: float, thickness: int) -> str:
+def _tick_zpl(template: LabelTemplate, factor: float) -> str:
     lines: list[str] = []
-    length = _s(35, factor)
-    tick_t = max(1, thickness)
-    center = size // 2
-    margin = _s(37, factor)
-
-    lines.append(_box_zpl(center - length // 2, margin, length, tick_t, tick_t))
-    lines.append(
-        _box_zpl(
-            center - length // 2,
-            size - margin - tick_t,
-            length,
-            tick_t,
-            tick_t,
-        )
-    )
-    lines.append(_box_zpl(margin, center - length // 2, tick_t, length, tick_t))
-    lines.append(
-        _box_zpl(size - margin - tick_t, center - length // 2, tick_t, length, tick_t)
-    )
+    for tick in template.ticks:
+        r = tick.scale(factor)
+        w = max(1, r.width)
+        h = max(1, r.height)
+        lines.append(_box_zpl(r.left, r.top, w, h, min(w, h)))
     return "".join(lines)
+
+
+def _text_width(payload: str, font_h: int) -> int:
+    """Approximate rendered width of ^A0 scalable font text."""
+    return round(len(payload) * font_h * 0.55)
 
 
 def render_label_zpl(
@@ -88,29 +81,39 @@ def render_label_zpl(
             )
         )
 
-    parts.append(_tick_zpl(size, factor, line_t))
+    parts.append(_tick_zpl(template, factor))
 
+    # Size modules from the actual symbol so the printed Data Matrix fills the
+    # template box like the PNG rendering does.
+    cols = len(encode_matrix(payload)[0])
     dm_size = min(dm.width, dm.height)
-    module = max(2, dm_size // 24)
-    parts.append(f"^FO{dm.left},{dm.top}^BXN,{module},200,,,,_^FD{payload}^FS")
+    module = max(2, dm_size // cols)
+    dm_x = dm.left + (dm.width - module * cols) // 2
+    dm_y = dm.top + (dm.height - module * cols) // 2
+    parts.append(f"^FO{dm_x},{dm_y}^BXN,{module},200,,,,_^FD{payload}^FS")
 
+    text_w = _text_width(payload, font_h)
     if template.kind == LabelKind.ANT:
-        bottom_y = _s(562, factor)
-        top_y = _s(40, factor)
-        left_x = _s(28, factor)
-        right_x = size - _s(170, factor)
+        assert inner is not None
+        text_x = (size - text_w) // 2
+        text_y = (size - text_w) // 2
+        top_band = (outer.top + inner.top) // 2
+        bottom_band = (inner.bottom + outer.bottom) // 2
+        left_band = (outer.left + inner.left) // 2
+        right_band = (inner.right + outer.right) // 2
+        # Orientations match the reference label: bottom normal, top inverted,
+        # left reads top-to-bottom (R), right reads bottom-to-top (B).
         parts.extend(
             [
-                f"^FO{outer.left + 20},{bottom_y}^A0N,{font_h},{font_w}^FD{payload}^FS",
-                f"^FO{outer.left + 20},{top_y}^A0I,{font_h},{font_w}^FD{payload}^FS",
-                f"^FO{left_x},{outer.top + outer.height // 3}^A0R,{font_h},{font_w}^FD{payload}^FS",
-                f"^FO{right_x},{outer.top + outer.height // 3}^A0B,{font_h},{font_w}^FD{payload}^FS",
+                f"^FO{text_x},{bottom_band - font_h // 2}^A0N,{font_h},{font_w}^FD{payload}^FS",
+                f"^FO{text_x},{top_band - font_h // 2}^A0I,{font_h},{font_w}^FD{payload}^FS",
+                f"^FO{left_band - font_h // 2},{text_y}^A0R,{font_h},{font_w}^FD{payload}^FS",
+                f"^FO{right_band - font_h // 2},{text_y}^A0B,{font_h},{font_w}^FD{payload}^FS",
             ]
         )
     else:
-        text_y = _s(template.bottom_text_y or 512, factor)
-        text_x = outer.left + 20
-        parts.append(f"^FO{text_x},{text_y}^A0N,{font_h},{font_w}^FD{payload}^FS")
+        text_y = _s(template.bottom_text_y or 512, factor) - font_h // 2
+        parts.append(f"^FO{(size - text_w) // 2},{text_y}^A0N,{font_h},{font_w}^FD{payload}^FS")
 
     parts.append("^XZ")
     return "\n".join(parts)

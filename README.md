@@ -11,25 +11,37 @@ Both label types use **Data Matrix** (not QR code) to stay compatible with exist
 | `robotlabels ant` | Ant floor marker | Data Matrix centered inside a double border; code printed on all four edges |
 | `robotlabels tote` | Tote label | Data Matrix centered; `TOTE_XXXXXX` text below |
 
+Step-by-step guides:
+
+- [Creating ant labels](docs/ant-labels.md)
+- [Creating tote labels](docs/tote-labels.md)
+
 Reference `.btw` files are included in the repo for comparison only. This tool does **not** require BarTender.
 
 ## Requirements
 
 - Python 3.10+
+- [Poetry](https://python-poetry.org/docs/#installation)
 - Linux, macOS, or Windows
 
 ## Installation
 
+From the project directory:
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
+poetry install
 ```
 
 Optional decode verification (requires the system `libdmtx` library):
 
 ```bash
-pip install -e ".[verify]"
+poetry install --extras verify
+```
+
+Run commands inside the Poetry environment:
+
+```bash
+poetry run robotlabels ant examples/ant_codes.csv --png -o out/
 ```
 
 ## CSV format
@@ -63,8 +75,8 @@ Use `--code-column` if your CSV uses a different column name.
 Generate all output formats:
 
 ```bash
-robotlabels ant examples/ant_codes.csv --png --pdf --zpl -o out/
-robotlabels tote examples/tote_codes.csv --png --pdf --zpl -o out/
+poetry run robotlabels ant examples/ant_codes.csv --png --pdf --zpl -o out/
+poetry run robotlabels tote examples/tote_codes.csv --png --pdf --zpl -o out/
 ```
 
 Output layout:
@@ -96,26 +108,22 @@ At least one of `--png`, `--pdf`, or `--zpl` is required.
 PNG only:
 
 ```bash
-robotlabels ant examples/ant_codes.csv --png -o labels/
+poetry run robotlabels ant examples/ant_codes.csv --png -o labels/
 ```
 
 PDF only:
 
 ```bash
-robotlabels tote examples/tote_codes.csv --pdf -o labels/
+poetry run robotlabels tote examples/tote_codes.csv --pdf -o labels/
 ```
 
 Custom column name:
 
 ```bash
-robotlabels ant my_data.csv --code-column location_id --png --zpl -o out/
+poetry run robotlabels ant my_data.csv --code-column location_id --png --zpl -o out/
 ```
 
-Run without installing (from repo root):
-
-```bash
-PYTHONPATH=. python3 -m robotlabels ant examples/ant_codes.csv --png -o out/
-```
+Alternatively, activate the Poetry shell once with `poetry shell`, then run `robotlabels` directly.
 
 ## Printing on Linux (Zebra ZD888)
 
@@ -159,6 +167,8 @@ Geometry is measured from the embedded preview images in the original BarTender 
 ## Project layout
 
 ```text
+pyproject.toml        # Poetry project metadata and dependencies
+poetry.lock           # locked dependency versions
 robotlabels/
   cli.py          # command-line interface
   csv_io.py       # CSV reader
@@ -170,25 +180,6 @@ robotlabels/
 examples/
   ant_codes.csv
   tote_codes.csv
-```
-
-## Rename this repository to RobotLabels
-
-The GitHub repo is currently named `BTWLabels`. To rename it:
-
-1. On GitHub: **Settings → General → Repository name → `RobotLabels`**
-2. Update your local remote:
-
-   ```bash
-   git remote set-url origin https://github.com/Lumunix/RobotLabels.git
-   ```
-
-3. Optionally rename the local folder from `BTWLabels` to `RobotLabels` and reopen the workspace in Cursor.
-
-If you use the GitHub CLI:
-
-```bash
-gh repo rename RobotLabels
 ```
 
 ## License

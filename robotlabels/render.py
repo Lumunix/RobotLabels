@@ -17,15 +17,21 @@ from robotlabels.templates import (
 )
 
 
+# Labels are drawn at SUPERSAMPLE x the final resolution, then downscaled with
+# LANCZOS so text and border corners come out smooth instead of pixelated.
+SUPERSAMPLE = 4
+
+
 def _scale(value: int, factor: float) -> int:
     return round(value * factor)
 
 
 def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     candidates = (
-        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
     )
     for path in candidates:
         try:
@@ -69,43 +75,33 @@ def _draw_datamatrix(
                 draw.rectangle((x0, y0, x0 + module - 1, y0 + module - 1), fill=0)
 
 
-def _draw_tick(
+def _draw_ticks(
     draw: ImageDraw.ImageDraw,
-    tick,
     template: LabelTemplate,
     factor: float,
-    line_w: int,
 ) -> None:
-    thickness = max(1, _scale(tick.thickness, factor))
-    length = _scale(tick.end - tick.start, factor)
-    center = _scale(tick.center, factor)
-    start = _scale(tick.start, factor)
-
-    if tick.orientation in {"top", "bottom"}:
-        y = _scale(48 if tick.orientation == "top" else 551, factor)
-        draw.rectangle((start, y, start + length, y + thickness), fill=0)
-    else:
-        x = _scale(48 if tick.orientation == "left" else 551, factor)
-        draw.rectangle((x, start, x + thickness, start + length), fill=0)
+    for tick in template.ticks:
+        r = tick.scale(factor)
+        draw.rectangle((r.left, r.top, max(r.right, r.left + 1), max(r.bottom, r.top + 1)), fill=0)
 
 
-def _draw_rotated_text(
-    image: Image.Image,
+def _make_text_image(
     text: str,
-    xy: tuple[int, int],
-    angle: int,
     font: ImageFont.FreeTypeFont | ImageFont.ImageFont,
-) -> None:
-    bbox = ImageDraw.Draw(image).textbbox((0, 0), text, font=font)
+) -> Image.Image:
+    """Render text tightly cropped to its ink bounding box (white background)."""
+    measure = ImageDraw.Draw(Image.new("L", (1, 1)))
+    bbox = measure.textbbox((0, 0), text, font=font)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
-    text_img = Image.new("RGBA", (tw + 4, th + 4), (255, 255, 255, 0))
-    text_draw = ImageDraw.Draw(text_img)
-    text_draw.text((2, 2), text, fill=(0, 0, 0, 255), font=font)
-    rotated = text_img.rotate(angle, expand=True, fillcolor=(255, 255, 255, 0))
-    base = image.convert("RGBA")
-    base.paste(rotated, xy, rotated)
-    image.paste(base.convert("L"))
+    text_img = Image.new("L", (tw, th), 255)
+    # Offset by the bbox origin so ascenders/descenders are not clipped.
+    ImageDraw.Draw(text_img).text((-bbox[0], -bbox[1]), text, fill=0, font=font)
+    return text_img
+
+
+def _paste_centered(image: Image.Image, tile: Image.Image, center: tuple[int, int]) -> None:
+    image.paste(tile, (center[0] - tile.width // 2, center[1] - tile.height // 2))
 
 
 def _draw_edge_text(
@@ -119,43 +115,20 @@ def _draw_edge_text(
     outer = template.outer.scale(factor)
     inner = template.inner.scale(factor)
 
-    draw = ImageDraw.Draw(image)
-    bbox = draw.textbbox((0, 0), text, font=font)
-    tw = bbox[2] - bbox[0]
-    th = bbox[3] - bbox[1]
+    text_img = _make_text_image(text, font)
+    mid = (outer.left + outer.right) // 2
+    top_band = (outer.top + inner.top) // 2
+    bottom_band = (inner.bottom + outer.bottom) // 2
+    left_band = (outer.left + inner.left) // 2
+    right_band = (inner.right + outer.right) // 2
 
-    bottom_y = inner.bottom + (outer.bottom - inner.bottom - th) // 2
-    top_y = outer.top + (inner.top - outer.top - th) // 2
-    left_x = outer.left + (inner.left - outer.left - th) // 2
-    right_x = inner.right + (outer.right - inner.right - th) // 2
-
-    draw.text(
-        (outer.left + (outer.width - tw) // 2, bottom_y),
-        text,
-        fill=0,
-        font=font,
-    )
-    _draw_rotated_text(
-        image,
-        text,
-        (outer.left + (outer.width - tw) // 2, top_y),
-        180,
-        font,
-    )
-    _draw_rotated_text(
-        image,
-        text,
-        (left_x, outer.top + (outer.height - tw) // 2),
-        90,
-        font,
-    )
-    _draw_rotated_text(
-        image,
-        text,
-        (right_x, outer.top + (outer.height - tw) // 2),
-        270,
-        font,
-    )
+    # Orientations measured from the reference label photo: bottom reads
+    # normally, top is upside down, left reads top-to-bottom, right reads
+    # bottom-to-top (180-degree rotational symmetry).
+    _paste_centered(image, text_img, (mid, bottom_band))
+    _paste_centered(image, text_img.rotate(180, expand=True, fillcolor=255), (mid, top_band))
+    _paste_centered(image, text_img.rotate(270, expand=True, fillcolor=255), (left_band, mid))
+    _paste_centered(image, text_img.rotate(90, expand=True, fillcolor=255), (right_band, mid))
 
 
 def render_label_png(
@@ -165,9 +138,10 @@ def render_label_png(
     size_mm: float = DEFAULT_SIZE_MM,
 ) -> Image.Image:
     template = get_template(kind)
-    factor = template.scale_factor(dpi, size_mm)
     size = template.dots(dpi, size_mm)
-    image = Image.new("L", (size, size), 255)
+    factor = template.scale_factor(dpi, size_mm) * SUPERSAMPLE
+    canvas = size * SUPERSAMPLE
+    image = Image.new("L", (canvas, canvas), 255)
     draw = ImageDraw.Draw(image)
 
     line_w = max(1, _scale(template.line_width_px, factor))
@@ -178,11 +152,11 @@ def render_label_png(
     _draw_rounded_rect(draw, (outer.left, outer.top, outer.right, outer.bottom), radius, line_w)
 
     if template.inner:
+        # The reference label's inner border has square corners.
         inner = template.inner.scale(factor)
-        _draw_rounded_rect(draw, (inner.left, inner.top, inner.right, inner.bottom), radius, line_w)
+        draw.rectangle((inner.left, inner.top, inner.right, inner.bottom), outline=0, width=line_w)
 
-    for tick in template.ticks:
-        _draw_tick(draw, tick, template, factor, line_w)
+    _draw_ticks(draw, template, factor)
 
     payload = format_tote_code(code) if template.kind == LabelKind.TOTE else code
     dm = template.datamatrix.scale(factor)
@@ -192,13 +166,11 @@ def render_label_png(
     if template.kind == LabelKind.ANT:
         _draw_edge_text(image, payload, template, factor, font)
     else:
-        bbox = draw.textbbox((0, 0), payload, font=font)
-        tw = bbox[2] - bbox[0]
-        th = bbox[3] - bbox[1]
-        text_y = _scale(template.bottom_text_y or 512, factor) - th // 2
-        draw.text(((size - tw) // 2, text_y), payload, fill=0, font=font)
+        text_img = _make_text_image(payload, font)
+        text_y = _scale(template.bottom_text_y or 512, factor)
+        _paste_centered(image, text_img, (canvas // 2, text_y))
 
-    return image.convert("1")
+    return image.resize((size, size), Image.LANCZOS)
 
 
 def save_png(image: Image.Image, path: Path) -> None:
