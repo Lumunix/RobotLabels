@@ -1,6 +1,6 @@
 # RobotLabels
 
-Open-source Python replacement for BarTender when generating robot floor and tote labels. Reads codes from a CSV file and produces PNG, PDF, and ZPL output for a **Zebra ZD888-203 dpi** printer on **60 x 60 mm** stock.
+Open-source Python tool for generating robot floor and tote labels. Reads codes from a CSV file and produces PNG, PDF, and ZPL output for a **Zebra ZD888-203 dpi** printer on **60 x 60 mm** stock.
 
 Both label types use **Data Matrix** (not QR code) to stay compatible with existing scanners and robot navigation systems.
 
@@ -15,8 +15,6 @@ Step-by-step guides:
 
 - [Creating ant labels](docs/ant-labels.md)
 - [Creating tote labels](docs/tote-labels.md)
-
-Reference `.btw` files are included in the repo for comparison only. This tool does **not** require BarTender.
 
 ## Requirements
 
@@ -168,7 +166,7 @@ Alternatively, activate the Poetry shell once with `poetry shell`, then run `rob
 3. Draws the label layout (borders, tick marks, text) with Pillow
 4. Writes PNG/PDF for proofing, and ZPL that embeds the same rendering as a `^GFA` bitmap — so the printed label always matches the PNG proof pixel for pixel (native ZPL text fields placed rotated text inconsistently across printer models)
 
-Geometry is measured from the embedded preview images in the original BarTender `.btw` templates and scaled to 480 x 480 dots (60 mm at 203 dpi).
+Layout geometry is defined in `robotlabels/templates.py` and scaled to 480 x 480 dots (60 mm at 203 dpi).
 
 ## Project layout
 

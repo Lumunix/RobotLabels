@@ -1,7 +1,7 @@
 [project]
 name = "robotlabels"
 version = "0.1.0"
-description = "Generate robot floor and tote labels from CSV without BarTender"
+description = "Generate robot floor and tote labels from CSV"
 authors = [{ name = "Lumunix" }]
 readme = "README.md"
 license = "MIT"

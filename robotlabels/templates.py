@@ -1,4 +1,4 @@
-"""Layout geometry measured from BarTender 60x60 mm preview PNGs (620 px)."""
+"""Layout geometry for 60x60 mm labels (620 px design coordinates)."""
 
 from __future__ import annotations
 
@@ -67,10 +67,21 @@ class LabelTemplate:
 # Ticks are short dashes perpendicular to the outer border, crossing it at the
 # midpoint of each edge (measured from the reference label photo).
 _EDGE_TICKS = (
-    Rect(308, 0, 312, 28),      # top
-    Rect(308, 592, 312, 620),   # bottom
-    Rect(0, 308, 28, 312),      # left
-    Rect(592, 308, 620, 312),   # right
+    Rect(307, 0, 313, 28),      # top
+    Rect(307, 592, 313, 620),   # bottom
+    Rect(0, 307, 28, 313),      # left
+    Rect(592, 307, 620, 313),   # right
+)
+
+# Center-axis ticks drawn inward from the inner border toward the Data Matrix.
+# They continue the outer edge ticks so a cross-line laser aligned with them
+# passes through the Data Matrix center, without crossing the edge text that
+# sits between the outer and inner borders.
+_INNER_CENTER_TICKS = (
+    Rect(307, 77, 313, 105),    # top
+    Rect(307, 514, 313, 542),   # bottom
+    Rect(77, 307, 105, 313),    # left
+    Rect(514, 307, 542, 313),   # right
 )
 
 ANT_TEMPLATE = LabelTemplate(
@@ -78,13 +89,15 @@ ANT_TEMPLATE = LabelTemplate(
     preview_px=PREVIEW_PX,
     outer=Rect(20, 20, 599, 599),
     inner=Rect(77, 77, 542, 542),
-    datamatrix=Rect(203, 203, 417, 417),
-    ticks=_EDGE_TICKS,
+    # Same size as the tote Data Matrix; still clear of the inner center-axis
+    # ticks, which end at 105 px.
+    datamatrix=Rect(161, 161, 459, 459),
+    ticks=_EDGE_TICKS + _INNER_CENTER_TICKS,
     text_height_px=44,
     text_band_px=Rect(20, 20, 599, 599),
     bottom_text_y=None,
     corner_radius_px=8,
-    line_width_px=2,
+    line_width_px=4,
 )
 
 TOTE_TEMPLATE = LabelTemplate(
@@ -98,7 +111,7 @@ TOTE_TEMPLATE = LabelTemplate(
     text_band_px=None,
     bottom_text_y=512,
     corner_radius_px=8,
-    line_width_px=2,
+    line_width_px=4,
 )
 
 TEMPLATES: dict[LabelKind, LabelTemplate] = {

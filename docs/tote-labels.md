@@ -124,7 +124,7 @@ Each tote label includes:
 - **Tote ID text** below the symbol (for example `TOTE_009201`)
 - **Registration tick marks** on each side for alignment
 
-Geometry matches the original BarTender `ToteLabelTemplate 60-60 2025-3-6.btw` template, scaled to 480 x 480 dots at 203 dpi.
+Layout is scaled to 480 x 480 dots at 203 dpi.
 
 ## Common options
 

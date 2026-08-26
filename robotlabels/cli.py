@@ -99,7 +99,7 @@ def _run(kind: LabelKind, args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="robotlabels",
-        description="Generate ant and tote robot labels from CSV without BarTender.",
+        description="Generate ant and tote robot labels from CSV.",
     )
     parser.add_argument(
         "--version",

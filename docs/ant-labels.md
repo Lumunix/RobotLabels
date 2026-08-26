@@ -115,7 +115,7 @@ Each ant label includes:
 - The **location code** repeated on all four edges (top, bottom, left, right)
 - **Registration tick marks** on each side for alignment
 
-Geometry matches the original BarTender `AntLabelTemplate 60-60 label 2025-3-6.btw` template, scaled to 480 x 480 dots at 203 dpi.
+Layout is scaled to 480 x 480 dots at 203 dpi.
 
 ## Common options
 

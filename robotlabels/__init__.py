@@ -1,3 +1,3 @@
-"""RobotLabels: BarTender-free label generator for ant and tote templates."""
+"""RobotLabels: label generator for ant and tote templates."""
 
 __version__ = "0.1.0"
