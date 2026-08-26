@@ -1,41 +1,47 @@
-"""ZPL generation for Zebra ZD888 203 dpi printers."""
+"""ZPL generation for Zebra ZD888 / ZD421 203 dpi printers.
+
+The label is rendered with the same code path as the PNG proofs and embedded
+as a ^GFA bitmap, so the printed label always matches the PNG pixel for pixel.
+Composing the label from native ZPL text/barcode fields proved unreliable:
+the printer's font metrics differ from our estimates and rotated ^A0 fields
+anchor ^FO to a different corner per rotation, misplacing the edge text.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from robotlabels.datamatrix import encode_matrix
+from PIL import Image
+
+from robotlabels.render import render_label_png
 from robotlabels.templates import (
     DEFAULT_DPI,
     DEFAULT_SIZE_MM,
     LabelKind,
-    LabelTemplate,
     format_tote_code,
     get_template,
 )
 
-
-def _s(value: int, factor: float) -> int:
-    return round(value * factor)
-
-
-def _box_zpl(x: int, y: int, w: int, h: int, thickness: int) -> str:
-    return f"^FO{x},{y}^GB{w},{h},{thickness},B^FS"
+# Pixels darker than this are printed black. The PNG is anti-aliased, so a
+# threshold above the midpoint keeps thin text strokes from dropping out.
+_BLACK_THRESHOLD = 160
 
 
-def _tick_zpl(template: LabelTemplate, factor: float) -> str:
-    lines: list[str] = []
-    for tick in template.ticks:
-        r = tick.scale(factor)
-        w = max(1, r.width)
-        h = max(1, r.height)
-        lines.append(_box_zpl(r.left, r.top, w, h, min(w, h)))
-    return "".join(lines)
-
-
-def _text_width(payload: str, font_h: int) -> int:
-    """Approximate rendered width of ^A0 scalable font text."""
-    return round(len(payload) * font_h * 0.55)
+def _image_to_gfa(image: Image.Image) -> str:
+    """Convert a grayscale label image to a ^GFA graphic field command."""
+    mono = image.point(lambda p: 0 if p < _BLACK_THRESHOLD else 255).convert("1")
+    bytes_per_row = (mono.width + 7) // 8
+    # In ZPL graphics a 1 bit means "print black"; PIL mode "1" uses 0 for
+    # black, so invert while packing.
+    raw = bytes(b ^ 0xFF for b in mono.tobytes())
+    total = bytes_per_row * mono.height
+    assert len(raw) == total
+    hex_rows = [
+        raw[i : i + bytes_per_row].hex().upper()
+        for i in range(0, total, bytes_per_row)
+    ]
+    data = "\n".join(hex_rows)
+    return f"^FO0,0^GFA,{total},{total},{bytes_per_row},\n{data}^FS"
 
 
 def render_label_zpl(
@@ -45,77 +51,17 @@ def render_label_zpl(
     size_mm: float = DEFAULT_SIZE_MM,
 ) -> str:
     template = get_template(kind)
-    factor = template.scale_factor(dpi, size_mm)
     size = template.dots(dpi, size_mm)
-    payload = format_tote_code(code) if template.kind == LabelKind.TOTE else code
-
-    outer = template.outer.scale(factor)
-    inner = template.inner.scale(factor) if template.inner else None
-    dm = template.datamatrix.scale(factor)
-    line_t = max(1, _s(template.line_width_px, factor))
-    font_h = max(12, _s(template.text_height_px, factor))
-    font_w = max(8, font_h // 2)
+    image = render_label_png(code, kind, dpi=dpi, size_mm=size_mm)
 
     parts = [
         "^XA",
         f"^PW{size}",
         f"^LL{size}",
         "^LH0,0",
-        _box_zpl(
-            outer.left,
-            outer.top,
-            outer.width,
-            outer.height,
-            line_t,
-        ),
+        _image_to_gfa(image),
+        "^XZ",
     ]
-
-    if inner:
-        parts.append(
-            _box_zpl(
-                inner.left,
-                inner.top,
-                inner.width,
-                inner.height,
-                line_t,
-            )
-        )
-
-    parts.append(_tick_zpl(template, factor))
-
-    # Size modules from the actual symbol so the printed Data Matrix fills the
-    # template box like the PNG rendering does.
-    cols = len(encode_matrix(payload)[0])
-    dm_size = min(dm.width, dm.height)
-    module = max(2, dm_size // cols)
-    dm_x = dm.left + (dm.width - module * cols) // 2
-    dm_y = dm.top + (dm.height - module * cols) // 2
-    parts.append(f"^FO{dm_x},{dm_y}^BXN,{module},200,,,,_^FD{payload}^FS")
-
-    text_w = _text_width(payload, font_h)
-    if template.kind == LabelKind.ANT:
-        assert inner is not None
-        text_x = (size - text_w) // 2
-        text_y = (size - text_w) // 2
-        top_band = (outer.top + inner.top) // 2
-        bottom_band = (inner.bottom + outer.bottom) // 2
-        left_band = (outer.left + inner.left) // 2
-        right_band = (inner.right + outer.right) // 2
-        # Orientations match the reference label: bottom normal, top inverted,
-        # left reads top-to-bottom (R), right reads bottom-to-top (B).
-        parts.extend(
-            [
-                f"^FO{text_x},{bottom_band - font_h // 2}^A0N,{font_h},{font_w}^FD{payload}^FS",
-                f"^FO{text_x},{top_band - font_h // 2}^A0I,{font_h},{font_w}^FD{payload}^FS",
-                f"^FO{left_band - font_h // 2},{text_y}^A0R,{font_h},{font_w}^FD{payload}^FS",
-                f"^FO{right_band - font_h // 2},{text_y}^A0B,{font_h},{font_w}^FD{payload}^FS",
-            ]
-        )
-    else:
-        text_y = _s(template.bottom_text_y or 512, factor) - font_h // 2
-        parts.append(f"^FO{(size - text_w) // 2},{text_y}^A0N,{font_h},{font_w}^FD{payload}^FS")
-
-    parts.append("^XZ")
     return "\n".join(parts)
 
 

@@ -70,7 +70,7 @@ Open the PNGs in `preview/png/` and confirm codes, borders, and Data Matrix plac
 poetry run robotlabels ant my_codes.csv --zpl -o print/
 ```
 
-## Step 3: Print on Linux (Zebra ZD888)
+## Step 3: Print on Linux (Zebra, 203 dpi)
 
 1. Connect the printer via USB and confirm it is detected:
 
@@ -78,27 +78,33 @@ poetry run robotlabels ant my_codes.csv --zpl -o print/
    lsusb | grep -i zebra
    ```
 
-2. Create a raw CUPS queue (one-time setup):
+2. Find the CUPS device URI:
 
    ```bash
-   sudo lpadmin -p zd888 -E -v usb://Zebra/ZD888 -m raw
-   sudo cupsaccept zd888
-   sudo cupsenable zd888
+   lpinfo -v | grep -i zebra
    ```
 
-   Adjust the `-v` URI to match your system (`lpinfo -v` lists available devices).
-
-3. Send a ZPL file to the printer:
+3. Create a raw CUPS queue (one-time setup). Use the URI from step 2:
 
    ```bash
-   lp -d zd888 -o raw out/zpl/100000CC100000.zpl
+   sudo lpadmin -p zebra -E -v "usb://Zebra%20Technologies/ZTC%20ZD421-203dpi%20ZPL?serial=XXXXXXXX" -m raw
+   sudo cupsaccept zebra
+   sudo cupsenable zebra
    ```
 
-4. Calibrate for 60 x 60 mm media if needed:
+4. Send a ZPL file to the printer:
+
+   ```bash
+   lp -d zebra -o raw out/zpl/100000CC100000.zpl
+   ```
+
+5. Calibrate for 60 x 60 mm media if needed:
 
    - Load square label stock
-   - Run the printer's media calibration (hold the feed button on power-up for ZD888)
+   - Run the printer's media calibration (power off, hold **Feed** while powering on)
    - Confirm `^PW480` and `^LL480` in the generated ZPL match your label size at 203 dpi
+
+If the job is accepted but nothing prints, or the printer shows red/flashing lights, see [Printing debugging](printing-debugging.md).
 
 ## Label layout
 
@@ -135,3 +141,5 @@ poetry run robotlabels ant warehouse_locations.csv --code-column location_id --p
 **Scanned code does not match** — The Data Matrix encodes the CSV value verbatim. Verify the source data and re-export if needed.
 
 **Print is misaligned** — Recalibrate the printer for 60 x 60 mm stock and confirm label size settings (`--size-mm 60`, `--dpi 203`).
+
+**Job accepted but nothing prints, or printer shows red/flashing lights** — See [Printing debugging](printing-debugging.md).

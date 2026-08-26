@@ -125,7 +125,7 @@ poetry run robotlabels ant my_data.csv --code-column location_id --png --zpl -o 
 
 Alternatively, activate the Poetry shell once with `poetry shell`, then run `robotlabels` directly.
 
-## Printing on Linux (Zebra ZD888)
+## Printing on Linux (Zebra, 203 dpi)
 
 1. Connect the printer via USB and confirm it is detected:
 
@@ -133,34 +133,40 @@ Alternatively, activate the Poetry shell once with `poetry shell`, then run `rob
    lsusb | grep -i zebra
    ```
 
-2. Create a raw CUPS queue (one-time setup):
+2. Find the CUPS device URI (do not guess the model name):
 
    ```bash
-   sudo lpadmin -p zd888 -E -v usb://Zebra/ZD888 -m raw
-   sudo cupsaccept zd888
-   sudo cupsenable zd888
+   lpinfo -v | grep -i zebra
    ```
 
-   Adjust the `-v` URI to match your system (`lpinfo -v` lists available devices).
-
-3. Send a ZPL file directly to the printer:
+3. Create a raw CUPS queue (one-time setup). Use the URI from step 2:
 
    ```bash
-   lp -d zd888 -o raw out/zpl/100000CC100000.zpl
+   sudo lpadmin -p zebra -E -v "usb://Zebra%20Technologies/ZTC%20ZD421-203dpi%20ZPL?serial=XXXXXXXX" -m raw
+   sudo cupsaccept zebra
+   sudo cupsenable zebra
    ```
 
-4. Calibrate for 60 x 60 mm media if needed:
+4. Send a ZPL file directly to the printer:
+
+   ```bash
+   lp -d zebra -o raw out/zpl/100000CC100000.zpl
+   ```
+
+5. Calibrate for 60 x 60 mm media if needed:
 
    - Load square label stock
-   - Run the printer's media calibration (hold the feed button on power-up for ZD888)
+   - Run the printer's media calibration (power off, hold **Feed** while powering on)
    - Confirm `^PW480` and `^LL480` in the generated ZPL match your label size at 203 dpi
+
+**Printing problems?** See [Printing debugging](docs/printing-debugging.md) for stuck jobs, wrong CUPS URIs, and printer status lights.
 
 ## How it works
 
 1. Reads codes from CSV
 2. Encodes each code as a Data Matrix symbol using pure-Python [`ppf-datamatrix`](https://pypi.org/project/ppf-datamatrix/)
 3. Draws the label layout (borders, tick marks, text) with Pillow
-4. Writes PNG/PDF for proofing and ZPL with native `^BX` Data Matrix commands for production printing
+4. Writes PNG/PDF for proofing, and ZPL that embeds the same rendering as a `^GFA` bitmap — so the printed label always matches the PNG proof pixel for pixel (native ZPL text fields placed rotated text inconsistently across printer models)
 
 Geometry is measured from the embedded preview images in the original BarTender `.btw` templates and scaled to 480 x 480 dots (60 mm at 203 dpi).
 
