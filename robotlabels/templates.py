@@ -89,9 +89,7 @@ ANT_TEMPLATE = LabelTemplate(
     preview_px=PREVIEW_PX,
     outer=Rect(20, 20, 599, 599),
     inner=Rect(77, 77, 542, 542),
-    # Same size as the tote Data Matrix; still clear of the inner center-axis
-    # ticks, which end at 105 px.
-    datamatrix=Rect(161, 161, 459, 459),
+    datamatrix=Rect(192, 192, 428, 428),
     ticks=_EDGE_TICKS + _INNER_CENTER_TICKS,
     text_height_px=44,
     text_band_px=Rect(20, 20, 599, 599),
