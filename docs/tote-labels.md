@@ -101,10 +101,11 @@ ZPL filenames use the formatted tote ID (for example `TOTE_009201.zpl`).
    sudo cupsenable zebra
    ```
 
-4. Send a ZPL file to the printer:
+4. Send a ZPL file to the printer, or print the whole batch at once:
 
    ```bash
    lp -d zebra -o raw out/zpl/TOTE_009201.zpl
+   poetry run robotlabels print out/zpl -d zebra
    ```
 
 5. Calibrate for 60 x 60 mm media if needed:

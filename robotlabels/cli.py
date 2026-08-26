@@ -8,6 +8,7 @@ from pathlib import Path
 
 from robotlabels import __version__
 from robotlabels.csv_io import read_codes
+from robotlabels.print_labels import print_zpl_directory
 from robotlabels.render import render_batch_png, render_label_png, save_pdf
 from robotlabels.templates import DEFAULT_DPI, DEFAULT_SIZE_MM, LabelKind
 from robotlabels.zpl import render_batch_zpl
@@ -122,6 +123,34 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_common_args(tote)
     tote.set_defaults(handler=lambda args: _run(LabelKind.TOTE, args))
+
+    printer = subparsers.add_parser(
+        "print",
+        help="Send every .zpl file in a directory to a CUPS raw queue",
+    )
+    printer.add_argument(
+        "directory",
+        type=Path,
+        nargs="?",
+        default=Path("out/zpl"),
+        help="Directory containing .zpl files (default: out/zpl)",
+    )
+    printer.add_argument(
+        "-d",
+        "--printer",
+        required=True,
+        help="CUPS queue name (as created with lpadmin -p)",
+    )
+    printer.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="List the files that would be printed without submitting jobs",
+    )
+    printer.set_defaults(
+        handler=lambda args: print_zpl_directory(
+            args.directory, args.printer, dry_run=args.dry_run
+        )
+    )
 
     return parser
 

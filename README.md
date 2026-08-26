@@ -11,10 +11,12 @@ Both label types use **Data Matrix** (not QR code) to stay compatible with exist
 | `robotlabels ant` | Ant floor marker | Data Matrix centered inside a double border; code printed on all four edges |
 | `robotlabels tote` | Tote label | Data Matrix centered; `TOTE_XXXXXX` text below |
 
-Step-by-step guides:
+## Documentation
 
-- [Creating ant labels](docs/ant-labels.md)
-- [Creating tote labels](docs/tote-labels.md)
+- [Creating ant labels](docs/ant-labels.md) — full workflow from CSV to printed floor marker
+- [Creating tote labels](docs/tote-labels.md) — full workflow, including `TOTE_` prefix rules
+- [CLI reference](docs/cli.md) — all subcommands, flags, and exit codes
+- [Printing debugging](docs/printing-debugging.md) — stuck jobs, wrong CUPS URIs, printer status lights
 
 ## Requirements
 
@@ -36,41 +38,17 @@ Optional decode verification (requires the system `libdmtx` library):
 poetry install --extras verify
 ```
 
-Run commands inside the Poetry environment:
+## Quick start
 
-```bash
-poetry run robotlabels ant examples/ant_codes.csv --png -o out/
-```
-
-## CSV format
-
-Create a CSV with a header row and one code per line:
-
-**examples/ant_codes.csv**
+Create a CSV with a header row and one code per line (see `examples/`):
 
 ```csv
 code
 100000CC100000
 100000CC100001
-100000CC100002
 ```
 
-**examples/tote_codes.csv**
-
-```csv
-code
-TOTE_009201
-TOTE_009202
-009203
-```
-
-For tote labels, values without the `TOTE_` prefix are automatically prefixed (`009203` becomes `TOTE_009203`).
-
-Use `--code-column` if your CSV uses a different column name.
-
-## Usage
-
-Generate all output formats:
+Generate labels:
 
 ```bash
 poetry run robotlabels ant examples/ant_codes.csv --png --pdf --zpl -o out/
@@ -87,77 +65,26 @@ out/
   tote_labels.pdf      # multi-page PDF (tote command)
 ```
 
-### Options
-
-| Flag | Default | Description |
-|------|---------|-------------|
-| `-o`, `--output` | `out` | Output directory |
-| `--code-column` | `code` | CSV column containing label codes |
-| `--dpi` | `203` | Print resolution (dots per inch) |
-| `--size-mm` | `60` | Label width and height in millimeters |
-| `--png` | off | Write PNG files |
-| `--pdf` | off | Write a multi-page PDF |
-| `--zpl` | off | Write ZPL files for Zebra printers |
-
-At least one of `--png`, `--pdf`, or `--zpl` is required.
-
-### Examples
-
-PNG only:
-
-```bash
-poetry run robotlabels ant examples/ant_codes.csv --png -o labels/
-```
-
-PDF only:
-
-```bash
-poetry run robotlabels tote examples/tote_codes.csv --pdf -o labels/
-```
-
-Custom column name:
-
-```bash
-poetry run robotlabels ant my_data.csv --code-column location_id --png --zpl -o out/
-```
-
-Alternatively, activate the Poetry shell once with `poetry shell`, then run `robotlabels` directly.
+At least one of `--png`, `--pdf`, or `--zpl` is required. See the [CLI reference](docs/cli.md) for all flags (`--code-column`, `--dpi`, `--size-mm`, ...).
 
 ## Printing on Linux (Zebra, 203 dpi)
 
-1. Connect the printer via USB and confirm it is detected:
+One-time setup — create a raw CUPS queue using the device URI from `lpinfo -v | grep -i zebra`:
 
-   ```bash
-   lsusb | grep -i zebra
-   ```
+```bash
+sudo lpadmin -p zebra -E -v "usb://Zebra%20Technologies/ZTC%20ZD421-203dpi%20ZPL?serial=XXXXXXXX" -m raw
+sudo cupsaccept zebra
+sudo cupsenable zebra
+```
 
-2. Find the CUPS device URI (do not guess the model name):
+Print a single label or a whole directory (add `--dry-run` to preview the file list first):
 
-   ```bash
-   lpinfo -v | grep -i zebra
-   ```
+```bash
+lp -d zebra -o raw out/zpl/100000CC100000.zpl
+poetry run robotlabels print out/zpl -d zebra
+```
 
-3. Create a raw CUPS queue (one-time setup). Use the URI from step 2:
-
-   ```bash
-   sudo lpadmin -p zebra -E -v "usb://Zebra%20Technologies/ZTC%20ZD421-203dpi%20ZPL?serial=XXXXXXXX" -m raw
-   sudo cupsaccept zebra
-   sudo cupsenable zebra
-   ```
-
-4. Send a ZPL file directly to the printer:
-
-   ```bash
-   lp -d zebra -o raw out/zpl/100000CC100000.zpl
-   ```
-
-5. Calibrate for 60 x 60 mm media if needed:
-
-   - Load square label stock
-   - Run the printer's media calibration (power off, hold **Feed** while powering on)
-   - Confirm `^PW480` and `^LL480` in the generated ZPL match your label size at 203 dpi
-
-**Printing problems?** See [Printing debugging](docs/printing-debugging.md) for stuck jobs, wrong CUPS URIs, and printer status lights.
+The label guides cover the full setup step by step, including media calibration. If a job is accepted but nothing prints, see [Printing debugging](docs/printing-debugging.md).
 
 ## How it works
 
@@ -177,6 +104,7 @@ robotlabels/
   cli.py          # command-line interface
   csv_io.py       # CSV reader
   datamatrix.py   # Data Matrix encoder wrapper
+  print_labels.py # batch printing of ZPL files via CUPS
   render.py       # PNG/PDF rendering
   templates.py    # label geometry
   verify.py       # optional verification helpers

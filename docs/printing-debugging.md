@@ -117,6 +117,10 @@ cancel -a YOUR_QUEUE
 
 # Test print after fixing URI or media
 lp -d YOUR_QUEUE -o raw out/zpl/100000CC100000.zpl
+
+# Print every .zpl file in a directory (one job per label)
+poetry run robotlabels print out/zpl -d YOUR_QUEUE
+poetry run robotlabels print out/zpl -d YOUR_QUEUE --dry-run   # list files only
 ```
 
 ## Still stuck?
