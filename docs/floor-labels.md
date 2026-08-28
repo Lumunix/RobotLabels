@@ -1,17 +1,17 @@
-# Creating ant labels
+# Creating floor labels
 
-Ant labels are **60 x 60 mm floor markers** used by mobile robots to navigate a warehouse. Each label encodes a location code as a Data Matrix symbol, with the same code printed along all four edges for human readability.
+Floor labels are **60 x 60 mm floor markers** used by mobile robots to navigate a warehouse. Each label encodes a location code as a Data Matrix symbol, with the same code printed along all four edges for human readability.
 
 ## What you need
 
 - Python 3.10+ and RobotLabels installed (see [README](../README.md#installation))
-- A CSV file with one location code per row
+- A CSV file with one floor code per row
 - **60 x 60 mm** label stock
 - A **Zebra ZD888** (203 dpi) or compatible Zebra printer for production output
 
 ## Code format
 
-Ant codes are opaque location identifiers. They are encoded into the Data Matrix exactly as written in the CSV — no prefix or transformation is applied.
+Floor codes are opaque location identifiers. They are encoded into the Data Matrix exactly as written in the CSV — no prefix or transformation is applied.
 
 Example codes:
 
@@ -36,14 +36,14 @@ code
 
 If your export uses a different column name (for example `location_id`), pass `--code-column location_id` when generating labels.
 
-See [examples/ant_codes.csv](../examples/ant_codes.csv) for a working sample file.
+See [examples/floor_codes.csv](../examples/floor_codes.csv) for a working sample file.
 
 ## Step 2: Generate labels
 
 From the project directory:
 
 ```bash
-poetry run robotlabels ant examples/ant_codes.csv --png --pdf --zpl -o out/
+poetry run robotlabels floor examples/floor_codes.csv --png --pdf --zpl -o out/
 ```
 
 Pick the output formats you need:
@@ -51,7 +51,7 @@ Pick the output formats you need:
 | Flag | Output | Use case |
 |------|--------|----------|
 | `--png` | One PNG per code in `out/png/` | Previewing layout, sharing proofs |
-| `--pdf` | Multi-page `out/ant_labels.pdf` | Printing from a PDF viewer |
+| `--pdf` | Multi-page `out/floor_labels.pdf` | Printing from a PDF viewer |
 | `--zpl` | One ZPL file per code in `out/zpl/` | Direct printing on a Zebra printer |
 
 At least one format flag is required.
@@ -59,7 +59,7 @@ At least one format flag is required.
 ### Preview first (PNG only)
 
 ```bash
-poetry run robotlabels ant my_codes.csv --png -o preview/
+poetry run robotlabels floor my_codes.csv --png -o preview/
 ```
 
 Open the PNGs in `preview/png/` and confirm codes, borders, and Data Matrix placement look correct before printing.
@@ -67,7 +67,7 @@ Open the PNGs in `preview/png/` and confirm codes, borders, and Data Matrix plac
 ### Print-ready ZPL only
 
 ```bash
-poetry run robotlabels ant my_codes.csv --zpl -o print/
+poetry run robotlabels floor my_codes.csv --zpl -o print/
 ```
 
 ## Step 3: Print on Linux (Zebra, 203 dpi)
@@ -109,7 +109,7 @@ If the job is accepted but nothing prints, or the printer shows red/flashing lig
 
 ## Label layout
 
-Each ant label includes:
+Each floor label includes:
 
 - A **double border** (outer and inner rounded rectangles)
 - A **Data Matrix** symbol centered in the inner area
@@ -123,14 +123,14 @@ Layout is scaled to 480 x 480 dots at 203 dpi.
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-o`, `--output` | `out` | Output directory |
-| `--code-column` | `code` | CSV column containing label codes |
+| `--code-column` | `code` | CSV column containing floor codes |
 | `--dpi` | `203` | Print resolution (dots per inch) |
 | `--size-mm` | `60` | Label width and height in millimeters |
 
 Example with a custom column name:
 
 ```bash
-poetry run robotlabels ant warehouse_locations.csv --code-column location_id --png --zpl -o out/
+poetry run robotlabels floor warehouse_locations.csv --code-column location_id --png --zpl -o out/
 ```
 
 ## Troubleshooting

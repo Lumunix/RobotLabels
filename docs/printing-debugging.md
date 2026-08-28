@@ -100,7 +100,7 @@ If labels print but content is offset or scaled wrong:
 - Regenerate with explicit size if needed:
 
   ```bash
-  poetry run robotlabels ant examples/ant_codes.csv --zpl --dpi 203 --size-mm 60 -o out/
+  poetry run robotlabels floor examples/floor_codes.csv --zpl --dpi 203 --size-mm 60 -o out/
   ```
 
 ## Useful commands

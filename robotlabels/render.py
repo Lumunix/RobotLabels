@@ -163,7 +163,7 @@ def render_label_png(
     _draw_datamatrix(image, (dm.left, dm.top, dm.right, dm.bottom), payload)
 
     font = _load_font(font_size)
-    if template.kind == LabelKind.ANT:
+    if template.kind == LabelKind.FLOOR:
         _draw_edge_text(image, payload, template, factor, font)
     else:
         text_img = _make_text_image(payload, font)

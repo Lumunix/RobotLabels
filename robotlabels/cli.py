@@ -100,7 +100,7 @@ def _run(kind: LabelKind, args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="robotlabels",
-        description="Generate ant and tote robot labels from CSV.",
+        description="Generate floor and tote robot labels from CSV.",
     )
     parser.add_argument(
         "--version",
@@ -110,12 +110,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    ant = subparsers.add_parser(
-        "ant",
+    floor = subparsers.add_parser(
+        "floor",
         help="Generate 60x60 mm floor marker labels (Data Matrix + edge text)",
     )
-    _add_common_args(ant)
-    ant.set_defaults(handler=lambda args: _run(LabelKind.ANT, args))
+    _add_common_args(floor)
+    floor.set_defaults(handler=lambda args: _run(LabelKind.FLOOR, args))
 
     tote = subparsers.add_parser(
         "tote",

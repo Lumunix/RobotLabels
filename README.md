@@ -1,6 +1,6 @@
 # RobotLabels
 
-Open-source Python tool for generating robot floor and tote labels. Reads codes from a CSV file and produces PNG, PDF, and ZPL output for a **Zebra ZD888-203 dpi** printer on **60 x 60 mm** stock.
+Open-source Python tool for generating robot floor and tote labels. Reads floor or tote codes from a CSV file and produces PNG, PDF, and ZPL output for a **Zebra ZD888-203 dpi** printer on **60 x 60 mm** stock.
 
 Both label types use **Data Matrix** (not QR code) to stay compatible with existing scanners and robot navigation systems.
 
@@ -8,12 +8,12 @@ Both label types use **Data Matrix** (not QR code) to stay compatible with exist
 
 | Command | Template | Layout |
 |---------|----------|--------|
-| `robotlabels ant` | Ant floor marker | Data Matrix centered inside a double border; code printed on all four edges |
+| `robotlabels floor` | Floor marker | Data Matrix centered inside a double border; code printed on all four edges |
 | `robotlabels tote` | Tote label | Data Matrix centered; `TOTE_XXXXXX` text below |
 
 ## Documentation
 
-- [Creating ant labels](docs/ant-labels.md) — full workflow from CSV to printed floor marker
+- [Creating floor labels](docs/floor-labels.md) — full workflow from CSV to printed floor marker
 - [Creating tote labels](docs/tote-labels.md) — full workflow, including `TOTE_` prefix rules
 - [CLI reference](docs/cli.md) — all subcommands, flags, and exit codes
 - [Printing debugging](docs/printing-debugging.md) — stuck jobs, wrong CUPS URIs, printer status lights
@@ -40,7 +40,7 @@ poetry install --extras verify
 
 ## Quick start
 
-Create a CSV with a header row and one code per line (see `examples/`):
+Create a CSV with a header row and one floor or tote code per line (see `examples/`):
 
 ```csv
 code
@@ -51,7 +51,7 @@ code
 Generate labels:
 
 ```bash
-poetry run robotlabels ant examples/ant_codes.csv --png --pdf --zpl -o out/
+poetry run robotlabels floor examples/floor_codes.csv --png --pdf --zpl -o out/
 poetry run robotlabels tote examples/tote_codes.csv --png --pdf --zpl -o out/
 ```
 
@@ -61,7 +61,7 @@ Output layout:
 out/
   png/                 # one PNG per code
   zpl/                 # one ZPL file per code
-  ant_labels.pdf       # multi-page PDF (ant command)
+  floor_labels.pdf      # multi-page PDF (floor command)
   tote_labels.pdf      # multi-page PDF (tote command)
 ```
 
@@ -110,7 +110,7 @@ robotlabels/
   verify.py       # optional verification helpers
   zpl.py          # ZPL generation
 examples/
-  ant_codes.csv
+  floor_codes.csv
   tote_codes.csv
 ```
 

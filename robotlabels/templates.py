@@ -12,7 +12,7 @@ DEFAULT_SIZE_MM = 60.0
 
 
 class LabelKind(str, Enum):
-    ANT = "ant"
+    FLOOR = "floor"
     TOTE = "tote"
 
 
@@ -52,7 +52,7 @@ class LabelTemplate:
     datamatrix: Rect
     ticks: tuple[Rect, ...]  # filled registration marks, in preview coordinates
     text_height_px: int
-    text_band_px: Rect | None  # region between outer and inner for edge text (ant)
+    text_band_px: Rect | None  # region between outer and inner for edge text (floor)
     bottom_text_y: int | None  # baseline region center for tote bottom text
     corner_radius_px: int
     line_width_px: int = 2
@@ -84,8 +84,8 @@ _INNER_CENTER_TICKS = (
     Rect(514, 307, 542, 313),   # right
 )
 
-ANT_TEMPLATE = LabelTemplate(
-    kind=LabelKind.ANT,
+FLOOR_TEMPLATE = LabelTemplate(
+    kind=LabelKind.FLOOR,
     preview_px=PREVIEW_PX,
     outer=Rect(20, 20, 599, 599),
     inner=Rect(77, 77, 542, 542),
@@ -113,7 +113,7 @@ TOTE_TEMPLATE = LabelTemplate(
 )
 
 TEMPLATES: dict[LabelKind, LabelTemplate] = {
-    LabelKind.ANT: ANT_TEMPLATE,
+    LabelKind.FLOOR: FLOOR_TEMPLATE,
     LabelKind.TOTE: TOTE_TEMPLATE,
 }
 
